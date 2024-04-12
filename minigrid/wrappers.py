@@ -10,7 +10,7 @@ import numpy as np
 from gymnasium import logger, spaces
 from gymnasium.core import ActionWrapper, ObservationWrapper, ObsType, Wrapper
 
-from minigrid.core.constants import COLOR_TO_IDX, OBJECT_TO_IDX, STATE_TO_IDX
+from minigrid.core.constants import COLOR_TO_IDX, OBJECT_TO_IDX, STATE_TO_IDX, IDX_TO_OBJECT, IDX_TO_COLOR
 from minigrid.core.world_object import Goal
 
 
