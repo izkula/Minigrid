@@ -12,6 +12,66 @@ from minigrid.manual_control import ManualControl
 from minigrid.minigrid_env import MiniGridEnv
 
 class HunterEnv(MiniGridEnv):
+    """
+      ## Description
+
+      This environment is an empty room with stationary trees and moving cows.
+      The goal of the agent is to hunt the cows by damaging a cow 3 times.
+      TODO TODO: ADD COW DAMAGE.
+      This agent is a very simplified version of Crafter.
+      This environment is based on the Dynamic-Obstacles env.
+
+      ## Mission Space
+
+      "hunt the blue cows"
+
+      ## Action Space
+
+      | Num | Name         | Action       |
+      |-----|--------------|--------------|
+      | 0   | left         | Turn left    |
+      | 1   | right        | Turn right   |
+      | 2   | forward      | Move forward |
+      | 3   | pickup       | Unused       |
+      | 4   | drop         | Unused       |
+      | 5   | toggle       | Unused       |
+      | 6   | done         | Unused       |
+
+      ## Observation Encoding
+
+      - Each tile is encoded as a 3 dimensional tuple:
+          `(OBJECT_IDX, COLOR_IDX, STATE)`
+      - `OBJECT_TO_IDX` and `COLOR_TO_IDX` mapping can be found in
+          [minigrid/core/constants.py](minigrid/core/constants.py)
+      - `STATE` refers to the door state with 0=open, 1=closed and 2=locked
+
+      ## Rewards
+
+      TODO TODO
+      A reward of '1 - 0.9 * (step_count / max_steps)' is given for success, and '0' for failure. A '-1' penalty is
+      subtracted if the agent collides with an obstacle.
+
+      ## Termination
+
+      TODO TODO
+      The episode ends if any one of the following conditions is met:
+
+      1. The agent reaches the goal.
+      2. The agent collides with an obstacle.
+      3. Timeout (see `max_steps`).
+
+      ## Registered Configurations
+
+      - `MiniGrid-HunterEnv-v0`
+
+      TODO TODO
+      - `MiniGrid-Dynamic-Obstacles-Random-5x5-v0`
+      - `MiniGrid-Dynamic-Obstacles-6x6-v0`
+      - `MiniGrid-Dynamic-Obstacles-Random-6x6-v0`
+      - `MiniGrid-Dynamic-Obstacles-8x8-v0`
+      - `MiniGrid-Dynamic-Obstacles-16x16-v0`
+
+      """
     def __init__(
         self,
         size=12,
@@ -56,7 +116,7 @@ class HunterEnv(MiniGridEnv):
 
     @staticmethod
     def _gen_mission():
-        return "grand mission"
+        return "hunt the blue cows"
 
     def _gen_grid(self, width, height):
         # Create an empty grid
@@ -146,19 +206,11 @@ class HunterEnv(MiniGridEnv):
                 except Exception:
                     pass
 
-            ### Randomly place in the 3x3 square around current position.
-            # try:
-            #     self.place_obj(
-            #         self.obstacles[i_obst], top=top, size=(3, 3), max_tries=100
-            #     )
-            #     self.grid.set(old_pos[0], old_pos[1], None)
-            # except Exception:
-            #     pass
-
         # Update the agent's position/direction
         obs, reward, terminated, truncated, info = super().step(action)
 
         # If the agent tried to walk over an obstacle or wall
+        ### TODO: FIX THIS SO YOU DONT DIE WHEN YOU HIT A COW.
         if action == self.actions.forward and not_clear:
             reward = -1
             terminated = True
