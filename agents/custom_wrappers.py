@@ -82,15 +82,17 @@ class TextObsWrapper(ObservationWrapper):
     Wrapper to get a text encoding of a partially observable
     agent view as observation.
     """
-    def __init__(self, env):
+    def __init__(self, env, hunter_objects=True):
         """A wrapper that makes the image observation a text of a partially observable agent view.
 
         Args:
             env: The environment to apply the wrapper
+            hunter_objects: bool. Label blue Balls as Cows and green Balls as Trees.
         """
         super().__init__(env)
 
         self.obs_shape  = env.observation_space["image"].shape
+        self.hunter_objects = hunter_objects
 
     def observation(self, obs):
 
@@ -126,7 +128,14 @@ class TextObsWrapper(ObservationWrapper):
                                 f'state={IDX_TO_STATE[state]})'
                 elif IDX_TO_OBJECT[type] == 'empty':
                     txt[i, j] = 'empty'
-
+                elif IDX_TO_OBJECT[type] == 'ball':
+                    if self.hunter_objects:
+                        if IDX_TO_COLOR[color] == 'blue':
+                            txt[i, j] = f'Cow({i}, {j})'
+                        elif IDX_TO_COLOR[color] == 'green':
+                            txt[i, j] = f'Tree({i}, {j})'
+                    else:
+                        txt[i, j] = f'Ball({i}, {j}, color={IDX_TO_COLOR[color]})'
                 else:
                     txt[i, j] = f'{IDX_TO_OBJECT[type].capitalize()}({i}, {j})'
         if is_partial_view:
@@ -134,8 +143,9 @@ class TextObsWrapper(ObservationWrapper):
             j = txt.shape[1]-1
             txt[i, j] = f'Agent({i}, {j}, carrying={carrying})'
 
-        rows = [' ; '.join(row) for row in txt]
-        text_string = ' ;\n'.join(rows)
-        obs['text'] = text_string
+        obs['text'] = txt
+        # rows = [' ; '.join(row) for row in txt]
+        # text_string = ' ;\n'.join(rows)
+        # obs['text'] = text_string
 
         return obs

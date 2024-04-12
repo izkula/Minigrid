@@ -11,6 +11,25 @@ from minigrid.core.world_object import Door, Goal, Key, Wall, Ball
 from minigrid.manual_control import ManualControl
 from minigrid.minigrid_env import MiniGridEnv
 
+class Cow(Ball):
+    def __init__(self, color="blue"):
+        super().__init__(color)
+        self.health = 3
+    def can_pickup(self):
+        return False
+
+class Tree(Ball):
+    def __init__(self, color="green"):
+        super().__init__(color)
+
+    def can_pickup(self):
+        return False
+
+action_text = {0: 'left',
+               1: 'right',
+               2: 'forward',
+               3: 'attack'}
+
 class HunterEnv(MiniGridEnv):
     """
       ## Description
@@ -32,7 +51,7 @@ class HunterEnv(MiniGridEnv):
       | 0   | left         | Turn left    |
       | 1   | right        | Turn right   |
       | 2   | forward      | Move forward |
-      | 3   | pickup       | Unused       |
+      | 3   | pickup       | Damage cow   |
       | 4   | drop         | Unused       |
       | 5   | toggle       | Unused       |
       | 6   | done         | Unused       |
@@ -56,13 +75,13 @@ class HunterEnv(MiniGridEnv):
       TODO TODO
       The episode ends if any one of the following conditions is met:
 
-      1. The agent reaches the goal.
-      2. The agent collides with an obstacle.
-      3. Timeout (see `max_steps`).
+      1. The agent hunts a cow.
+      2. Timeout (see `max_steps`).
 
       ## Registered Configurations
 
-      - `MiniGrid-HunterEnv-v0`
+      - `MiniGrid-Hunter-v0`
+      - `MiniGrid-Hunter-Stationary-v0`
 
       TODO TODO
       - `MiniGrid-Dynamic-Obstacles-Random-5x5-v0`
@@ -80,12 +99,14 @@ class HunterEnv(MiniGridEnv):
         n_cows=2,
         n_trees=2,
         stationary_cows=False,
+        damage_cows=True,
         max_steps: int | None = None,
         **kwargs,
     ):
         self.agent_start_pos = agent_start_pos
         self.agent_start_dir = agent_start_dir
         self.stationary_cows = stationary_cows
+        self.damage_cows = damage_cows
 
         # Reduce obstacles if there are too many
         if n_cows <= size / 2 + 1:
@@ -111,7 +132,10 @@ class HunterEnv(MiniGridEnv):
         )
 
         # Allow only 3 actions permitted: left, right, forward
-        self.action_space = Discrete(self.actions.forward + 1)
+        if self.damage_cows:
+            self.action_space = Discrete(self.actions.pickup + 1)
+        else:
+            self.action_space = Discrete(self.actions.forward + 1)
         self.reward_range = (-1, 1)
 
     @staticmethod
@@ -137,12 +161,14 @@ class HunterEnv(MiniGridEnv):
 
         self.cows = []
         for i_cow in range(self.n_cows):
-            self.cows.append(Ball())
+            # self.cows.append(Ball())
+            self.cows.append(Cow())
             self.place_obj(self.cows[i_cow], max_tries=100)
 
         self.trees = []
         for i_tree in range(self.n_trees):
-            self.trees.append(Ball(color="green"))
+            # self.trees.append(Ball(color="green"))
+            self.trees.append(Tree())
             self.place_obj(self.trees[i_tree], max_tries=100)
 
         self.mission = "get to the green goal square"
@@ -209,13 +235,35 @@ class HunterEnv(MiniGridEnv):
         # Update the agent's position/direction
         obs, reward, terminated, truncated, info = super().step(action)
 
-        # If the agent tried to walk over an obstacle or wall
-        ### TODO: FIX THIS SO YOU DONT DIE WHEN YOU HIT A COW.
-        if action == self.actions.forward and not_clear:
-            reward = -1
-            terminated = True
-            return obs, reward, terminated, truncated, info
+        if action == self.actions.pickup:
+            fwd_pos = self.front_pos
+            fwd_cell = self.grid.get(*fwd_pos)
+            if fwd_cell and not fwd_cell.can_pickup():
+                if hasattr(fwd_cell, 'health'):
+                    fwd_cell.health -= 1
+                    print(f'Cow health {fwd_cell.health}')
+                    if fwd_cell.health == 0:
+                        print('Successful Hunt')
+                        reward = self._reward()
+                        terminated = True
 
+            #     if self.carrying is None:
+            #         self.carrying = fwd_cell
+            #         self.carrying.cur_pos = np.array([-1, -1])
+            #         self.grid.set(fwd_pos[0], fwd_pos[1], None)
+            #
+            # if self.carrying and self.carrying == self.obj:
+            #     reward = self._reward()
+            #     terminated = True
+
+        ### TODO: FIX THIS SO YOU DONT DIE WHEN YOU HIT A COW.
+        # If the agent tried to walk over an obstacle or wall
+        # if action == self.actions.forward and not_clear:
+        #     reward = -1
+        #     terminated = True
+        #     return obs, reward, terminated, truncated, info
+
+        info['action'] = action_text[action]
         return obs, reward, terminated, truncated, info
 
 def main():
